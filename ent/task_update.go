@@ -6,8 +6,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"testserver/ent/predicate"
-	"testserver/ent/task"
+	"go-taskapi/ent/predicate"
+	"go-taskapi/ent/task"
+	"go-taskapi/ent/user"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
@@ -41,23 +42,48 @@ func (tu *TaskUpdate) SetNillableTitle(s *string) *TaskUpdate {
 	return tu
 }
 
-// SetContent sets the "content" field.
-func (tu *TaskUpdate) SetContent(s string) *TaskUpdate {
-	tu.mutation.SetContent(s)
+// SetDescription sets the "description" field.
+func (tu *TaskUpdate) SetDescription(s string) *TaskUpdate {
+	tu.mutation.SetDescription(s)
 	return tu
 }
 
-// SetNillableContent sets the "content" field if the given value is not nil.
-func (tu *TaskUpdate) SetNillableContent(s *string) *TaskUpdate {
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (tu *TaskUpdate) SetNillableDescription(s *string) *TaskUpdate {
 	if s != nil {
-		tu.SetContent(*s)
+		tu.SetDescription(*s)
 	}
 	return tu
+}
+
+// SetUserID sets the "user" edge to the User entity by ID.
+func (tu *TaskUpdate) SetUserID(id int) *TaskUpdate {
+	tu.mutation.SetUserID(id)
+	return tu
+}
+
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (tu *TaskUpdate) SetNillableUserID(id *int) *TaskUpdate {
+	if id != nil {
+		tu = tu.SetUserID(*id)
+	}
+	return tu
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (tu *TaskUpdate) SetUser(u *User) *TaskUpdate {
+	return tu.SetUserID(u.ID)
 }
 
 // Mutation returns the TaskMutation object of the builder.
 func (tu *TaskUpdate) Mutation() *TaskMutation {
 	return tu.mutation
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (tu *TaskUpdate) ClearUser() *TaskUpdate {
+	tu.mutation.ClearUser()
+	return tu
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -99,8 +125,37 @@ func (tu *TaskUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := tu.mutation.Title(); ok {
 		_spec.SetField(task.FieldTitle, field.TypeString, value)
 	}
-	if value, ok := tu.mutation.Content(); ok {
-		_spec.SetField(task.FieldContent, field.TypeString, value)
+	if value, ok := tu.mutation.Description(); ok {
+		_spec.SetField(task.FieldDescription, field.TypeString, value)
+	}
+	if tu.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   task.UserTable,
+			Columns: []string{task.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tu.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   task.UserTable,
+			Columns: []string{task.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if n, err = sqlgraph.UpdateNodes(ctx, tu.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -136,23 +191,48 @@ func (tuo *TaskUpdateOne) SetNillableTitle(s *string) *TaskUpdateOne {
 	return tuo
 }
 
-// SetContent sets the "content" field.
-func (tuo *TaskUpdateOne) SetContent(s string) *TaskUpdateOne {
-	tuo.mutation.SetContent(s)
+// SetDescription sets the "description" field.
+func (tuo *TaskUpdateOne) SetDescription(s string) *TaskUpdateOne {
+	tuo.mutation.SetDescription(s)
 	return tuo
 }
 
-// SetNillableContent sets the "content" field if the given value is not nil.
-func (tuo *TaskUpdateOne) SetNillableContent(s *string) *TaskUpdateOne {
+// SetNillableDescription sets the "description" field if the given value is not nil.
+func (tuo *TaskUpdateOne) SetNillableDescription(s *string) *TaskUpdateOne {
 	if s != nil {
-		tuo.SetContent(*s)
+		tuo.SetDescription(*s)
 	}
 	return tuo
+}
+
+// SetUserID sets the "user" edge to the User entity by ID.
+func (tuo *TaskUpdateOne) SetUserID(id int) *TaskUpdateOne {
+	tuo.mutation.SetUserID(id)
+	return tuo
+}
+
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (tuo *TaskUpdateOne) SetNillableUserID(id *int) *TaskUpdateOne {
+	if id != nil {
+		tuo = tuo.SetUserID(*id)
+	}
+	return tuo
+}
+
+// SetUser sets the "user" edge to the User entity.
+func (tuo *TaskUpdateOne) SetUser(u *User) *TaskUpdateOne {
+	return tuo.SetUserID(u.ID)
 }
 
 // Mutation returns the TaskMutation object of the builder.
 func (tuo *TaskUpdateOne) Mutation() *TaskMutation {
 	return tuo.mutation
+}
+
+// ClearUser clears the "user" edge to the User entity.
+func (tuo *TaskUpdateOne) ClearUser() *TaskUpdateOne {
+	tuo.mutation.ClearUser()
+	return tuo
 }
 
 // Where appends a list predicates to the TaskUpdate builder.
@@ -224,8 +304,37 @@ func (tuo *TaskUpdateOne) sqlSave(ctx context.Context) (_node *Task, err error) 
 	if value, ok := tuo.mutation.Title(); ok {
 		_spec.SetField(task.FieldTitle, field.TypeString, value)
 	}
-	if value, ok := tuo.mutation.Content(); ok {
-		_spec.SetField(task.FieldContent, field.TypeString, value)
+	if value, ok := tuo.mutation.Description(); ok {
+		_spec.SetField(task.FieldDescription, field.TypeString, value)
+	}
+	if tuo.mutation.UserCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   task.UserTable,
+			Columns: []string{task.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := tuo.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   task.UserTable,
+			Columns: []string{task.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &Task{config: tuo.config}
 	_spec.Assign = _node.assignValues

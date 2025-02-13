@@ -2,23 +2,28 @@ package schema
 
 import (
 	"entgo.io/ent"
+	"entgo.io/ent/schema/edge"
 	"entgo.io/ent/schema/field"
 )
 
-// User holds the schema definition for the User entity.
+// Task holds the schema definition for the Task entity.
 type Task struct {
 	ent.Schema
 }
 
-// Fields of the User.
+// Fields of the Task.
 func (Task) Fields() []ent.Field {
 	return []ent.Field{
-		field.String("title").Default("unknown"),
-		field.String("content").Default("empty"),
+		field.String("title"),
+		field.String("description"),
 	}
 }
 
-// Edges of the User.
+// Edges of the Task.
 func (Task) Edges() []ent.Edge {
-	return nil
+	return []ent.Edge{
+		edge.From("user", User.Type).
+			Ref("tasks").
+			Unique(),
+	}
 }

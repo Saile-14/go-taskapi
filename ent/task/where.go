@@ -3,9 +3,10 @@
 package task
 
 import (
-	"testserver/ent/predicate"
+	"go-taskapi/ent/predicate"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 )
 
 // ID filters vertices based on their ID field.
@@ -58,9 +59,9 @@ func Title(v string) predicate.Task {
 	return predicate.Task(sql.FieldEQ(FieldTitle, v))
 }
 
-// Content applies equality check predicate on the "content" field. It's identical to ContentEQ.
-func Content(v string) predicate.Task {
-	return predicate.Task(sql.FieldEQ(FieldContent, v))
+// Description applies equality check predicate on the "description" field. It's identical to DescriptionEQ.
+func Description(v string) predicate.Task {
+	return predicate.Task(sql.FieldEQ(FieldDescription, v))
 }
 
 // TitleEQ applies the EQ predicate on the "title" field.
@@ -128,69 +129,92 @@ func TitleContainsFold(v string) predicate.Task {
 	return predicate.Task(sql.FieldContainsFold(FieldTitle, v))
 }
 
-// ContentEQ applies the EQ predicate on the "content" field.
-func ContentEQ(v string) predicate.Task {
-	return predicate.Task(sql.FieldEQ(FieldContent, v))
+// DescriptionEQ applies the EQ predicate on the "description" field.
+func DescriptionEQ(v string) predicate.Task {
+	return predicate.Task(sql.FieldEQ(FieldDescription, v))
 }
 
-// ContentNEQ applies the NEQ predicate on the "content" field.
-func ContentNEQ(v string) predicate.Task {
-	return predicate.Task(sql.FieldNEQ(FieldContent, v))
+// DescriptionNEQ applies the NEQ predicate on the "description" field.
+func DescriptionNEQ(v string) predicate.Task {
+	return predicate.Task(sql.FieldNEQ(FieldDescription, v))
 }
 
-// ContentIn applies the In predicate on the "content" field.
-func ContentIn(vs ...string) predicate.Task {
-	return predicate.Task(sql.FieldIn(FieldContent, vs...))
+// DescriptionIn applies the In predicate on the "description" field.
+func DescriptionIn(vs ...string) predicate.Task {
+	return predicate.Task(sql.FieldIn(FieldDescription, vs...))
 }
 
-// ContentNotIn applies the NotIn predicate on the "content" field.
-func ContentNotIn(vs ...string) predicate.Task {
-	return predicate.Task(sql.FieldNotIn(FieldContent, vs...))
+// DescriptionNotIn applies the NotIn predicate on the "description" field.
+func DescriptionNotIn(vs ...string) predicate.Task {
+	return predicate.Task(sql.FieldNotIn(FieldDescription, vs...))
 }
 
-// ContentGT applies the GT predicate on the "content" field.
-func ContentGT(v string) predicate.Task {
-	return predicate.Task(sql.FieldGT(FieldContent, v))
+// DescriptionGT applies the GT predicate on the "description" field.
+func DescriptionGT(v string) predicate.Task {
+	return predicate.Task(sql.FieldGT(FieldDescription, v))
 }
 
-// ContentGTE applies the GTE predicate on the "content" field.
-func ContentGTE(v string) predicate.Task {
-	return predicate.Task(sql.FieldGTE(FieldContent, v))
+// DescriptionGTE applies the GTE predicate on the "description" field.
+func DescriptionGTE(v string) predicate.Task {
+	return predicate.Task(sql.FieldGTE(FieldDescription, v))
 }
 
-// ContentLT applies the LT predicate on the "content" field.
-func ContentLT(v string) predicate.Task {
-	return predicate.Task(sql.FieldLT(FieldContent, v))
+// DescriptionLT applies the LT predicate on the "description" field.
+func DescriptionLT(v string) predicate.Task {
+	return predicate.Task(sql.FieldLT(FieldDescription, v))
 }
 
-// ContentLTE applies the LTE predicate on the "content" field.
-func ContentLTE(v string) predicate.Task {
-	return predicate.Task(sql.FieldLTE(FieldContent, v))
+// DescriptionLTE applies the LTE predicate on the "description" field.
+func DescriptionLTE(v string) predicate.Task {
+	return predicate.Task(sql.FieldLTE(FieldDescription, v))
 }
 
-// ContentContains applies the Contains predicate on the "content" field.
-func ContentContains(v string) predicate.Task {
-	return predicate.Task(sql.FieldContains(FieldContent, v))
+// DescriptionContains applies the Contains predicate on the "description" field.
+func DescriptionContains(v string) predicate.Task {
+	return predicate.Task(sql.FieldContains(FieldDescription, v))
 }
 
-// ContentHasPrefix applies the HasPrefix predicate on the "content" field.
-func ContentHasPrefix(v string) predicate.Task {
-	return predicate.Task(sql.FieldHasPrefix(FieldContent, v))
+// DescriptionHasPrefix applies the HasPrefix predicate on the "description" field.
+func DescriptionHasPrefix(v string) predicate.Task {
+	return predicate.Task(sql.FieldHasPrefix(FieldDescription, v))
 }
 
-// ContentHasSuffix applies the HasSuffix predicate on the "content" field.
-func ContentHasSuffix(v string) predicate.Task {
-	return predicate.Task(sql.FieldHasSuffix(FieldContent, v))
+// DescriptionHasSuffix applies the HasSuffix predicate on the "description" field.
+func DescriptionHasSuffix(v string) predicate.Task {
+	return predicate.Task(sql.FieldHasSuffix(FieldDescription, v))
 }
 
-// ContentEqualFold applies the EqualFold predicate on the "content" field.
-func ContentEqualFold(v string) predicate.Task {
-	return predicate.Task(sql.FieldEqualFold(FieldContent, v))
+// DescriptionEqualFold applies the EqualFold predicate on the "description" field.
+func DescriptionEqualFold(v string) predicate.Task {
+	return predicate.Task(sql.FieldEqualFold(FieldDescription, v))
 }
 
-// ContentContainsFold applies the ContainsFold predicate on the "content" field.
-func ContentContainsFold(v string) predicate.Task {
-	return predicate.Task(sql.FieldContainsFold(FieldContent, v))
+// DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
+func DescriptionContainsFold(v string) predicate.Task {
+	return predicate.Task(sql.FieldContainsFold(FieldDescription, v))
+}
+
+// HasUser applies the HasEdge predicate on the "user" edge.
+func HasUser() predicate.Task {
+	return predicate.Task(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasUserWith applies the HasEdge predicate on the "user" edge with a given conditions (other predicates).
+func HasUserWith(preds ...predicate.User) predicate.Task {
+	return predicate.Task(func(s *sql.Selector) {
+		step := newUserStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

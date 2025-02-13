@@ -4,8 +4,9 @@ package ent
 
 import (
 	"fmt"
+	"go-taskapi/ent/task"
+	"go-taskapi/ent/user"
 	"strings"
-	"testserver/ent/task"
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
@@ -18,9 +19,33 @@ type Task struct {
 	ID int `json:"id,omitempty"`
 	// Title holds the value of the "title" field.
 	Title string `json:"title,omitempty"`
-	// Content holds the value of the "content" field.
-	Content      string `json:"content,omitempty"`
+	// Description holds the value of the "description" field.
+	Description string `json:"description,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the TaskQuery when eager-loading is set.
+	Edges        TaskEdges `json:"edges"`
+	user_tasks   *int
 	selectValues sql.SelectValues
+}
+
+// TaskEdges holds the relations/edges for other nodes in the graph.
+type TaskEdges struct {
+	// User holds the value of the user edge.
+	User *User `json:"user,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [1]bool
+}
+
+// UserOrErr returns the User value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e TaskEdges) UserOrErr() (*User, error) {
+	if e.User != nil {
+		return e.User, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: user.Label}
+	}
+	return nil, &NotLoadedError{edge: "user"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -30,8 +55,10 @@ func (*Task) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case task.FieldID:
 			values[i] = new(sql.NullInt64)
-		case task.FieldTitle, task.FieldContent:
+		case task.FieldTitle, task.FieldDescription:
 			values[i] = new(sql.NullString)
+		case task.ForeignKeys[0]: // user_tasks
+			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -59,11 +86,18 @@ func (t *Task) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				t.Title = value.String
 			}
-		case task.FieldContent:
+		case task.FieldDescription:
 			if value, ok := values[i].(*sql.NullString); !ok {
-				return fmt.Errorf("unexpected type %T for field content", values[i])
+				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
-				t.Content = value.String
+				t.Description = value.String
+			}
+		case task.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field user_tasks", value)
+			} else if value.Valid {
+				t.user_tasks = new(int)
+				*t.user_tasks = int(value.Int64)
 			}
 		default:
 			t.selectValues.Set(columns[i], values[i])
@@ -76,6 +110,11 @@ func (t *Task) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (t *Task) Value(name string) (ent.Value, error) {
 	return t.selectValues.Get(name)
+}
+
+// QueryUser queries the "user" edge of the Task entity.
+func (t *Task) QueryUser() *UserQuery {
+	return NewTaskClient(t.config).QueryUser(t)
 }
 
 // Update returns a builder for updating this Task.
@@ -104,8 +143,8 @@ func (t *Task) String() string {
 	builder.WriteString("title=")
 	builder.WriteString(t.Title)
 	builder.WriteString(", ")
-	builder.WriteString("content=")
-	builder.WriteString(t.Content)
+	builder.WriteString("description=")
+	builder.WriteString(t.Description)
 	builder.WriteByte(')')
 	return builder.String()
 }

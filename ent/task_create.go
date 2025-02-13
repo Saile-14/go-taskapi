@@ -6,7 +6,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"testserver/ent/task"
+	"go-taskapi/ent/task"
+	"go-taskapi/ent/user"
 
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
@@ -25,26 +26,29 @@ func (tc *TaskCreate) SetTitle(s string) *TaskCreate {
 	return tc
 }
 
-// SetNillableTitle sets the "title" field if the given value is not nil.
-func (tc *TaskCreate) SetNillableTitle(s *string) *TaskCreate {
-	if s != nil {
-		tc.SetTitle(*s)
+// SetDescription sets the "description" field.
+func (tc *TaskCreate) SetDescription(s string) *TaskCreate {
+	tc.mutation.SetDescription(s)
+	return tc
+}
+
+// SetUserID sets the "user" edge to the User entity by ID.
+func (tc *TaskCreate) SetUserID(id int) *TaskCreate {
+	tc.mutation.SetUserID(id)
+	return tc
+}
+
+// SetNillableUserID sets the "user" edge to the User entity by ID if the given value is not nil.
+func (tc *TaskCreate) SetNillableUserID(id *int) *TaskCreate {
+	if id != nil {
+		tc = tc.SetUserID(*id)
 	}
 	return tc
 }
 
-// SetContent sets the "content" field.
-func (tc *TaskCreate) SetContent(s string) *TaskCreate {
-	tc.mutation.SetContent(s)
-	return tc
-}
-
-// SetNillableContent sets the "content" field if the given value is not nil.
-func (tc *TaskCreate) SetNillableContent(s *string) *TaskCreate {
-	if s != nil {
-		tc.SetContent(*s)
-	}
-	return tc
+// SetUser sets the "user" edge to the User entity.
+func (tc *TaskCreate) SetUser(u *User) *TaskCreate {
+	return tc.SetUserID(u.ID)
 }
 
 // Mutation returns the TaskMutation object of the builder.
@@ -54,7 +58,6 @@ func (tc *TaskCreate) Mutation() *TaskMutation {
 
 // Save creates the Task in the database.
 func (tc *TaskCreate) Save(ctx context.Context) (*Task, error) {
-	tc.defaults()
 	return withHooks(ctx, tc.sqlSave, tc.mutation, tc.hooks)
 }
 
@@ -80,25 +83,13 @@ func (tc *TaskCreate) ExecX(ctx context.Context) {
 	}
 }
 
-// defaults sets the default values of the builder before save.
-func (tc *TaskCreate) defaults() {
-	if _, ok := tc.mutation.Title(); !ok {
-		v := task.DefaultTitle
-		tc.mutation.SetTitle(v)
-	}
-	if _, ok := tc.mutation.Content(); !ok {
-		v := task.DefaultContent
-		tc.mutation.SetContent(v)
-	}
-}
-
 // check runs all checks and user-defined validators on the builder.
 func (tc *TaskCreate) check() error {
 	if _, ok := tc.mutation.Title(); !ok {
 		return &ValidationError{Name: "title", err: errors.New(`ent: missing required field "Task.title"`)}
 	}
-	if _, ok := tc.mutation.Content(); !ok {
-		return &ValidationError{Name: "content", err: errors.New(`ent: missing required field "Task.content"`)}
+	if _, ok := tc.mutation.Description(); !ok {
+		return &ValidationError{Name: "description", err: errors.New(`ent: missing required field "Task.description"`)}
 	}
 	return nil
 }
@@ -130,9 +121,26 @@ func (tc *TaskCreate) createSpec() (*Task, *sqlgraph.CreateSpec) {
 		_spec.SetField(task.FieldTitle, field.TypeString, value)
 		_node.Title = value
 	}
-	if value, ok := tc.mutation.Content(); ok {
-		_spec.SetField(task.FieldContent, field.TypeString, value)
-		_node.Content = value
+	if value, ok := tc.mutation.Description(); ok {
+		_spec.SetField(task.FieldDescription, field.TypeString, value)
+		_node.Description = value
+	}
+	if nodes := tc.mutation.UserIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
+			Table:   task.UserTable,
+			Columns: []string{task.UserColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.user_tasks = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }
@@ -155,7 +163,6 @@ func (tcb *TaskCreateBulk) Save(ctx context.Context) ([]*Task, error) {
 	for i := range tcb.builders {
 		func(i int, root context.Context) {
 			builder := tcb.builders[i]
-			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*TaskMutation)
 				if !ok {

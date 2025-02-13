@@ -5,11 +5,11 @@ package enttest
 import (
 	"context"
 
-	"testserver/ent"
+	"go-taskapi/ent"
 	// required by schema hooks.
-	_ "testserver/ent/runtime"
+	_ "go-taskapi/ent/runtime"
 
-	"testserver/ent/migrate"
+	"go-taskapi/ent/migrate"
 
 	"entgo.io/ent/dialect/sql/schema"
 )

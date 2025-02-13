@@ -4,8 +4,8 @@ package ent
 
 import (
 	"context"
-	"testserver/ent/predicate"
-	"testserver/ent/task"
+	"go-taskapi/ent/predicate"
+	"go-taskapi/ent/task"
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
