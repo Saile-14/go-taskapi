@@ -16,6 +16,8 @@ const (
 	FieldTitle = "title"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
+	// FieldSteps holds the string denoting the steps field in the database.
+	FieldSteps = "steps"
 	// EdgeUser holds the string denoting the user edge name in mutations.
 	EdgeUser = "user"
 	// Table holds the table name of the task in the database.
@@ -34,6 +36,7 @@ var Columns = []string{
 	FieldID,
 	FieldTitle,
 	FieldDescription,
+	FieldSteps,
 }
 
 // ForeignKeys holds the SQL foreign-keys that are owned by the "tasks"

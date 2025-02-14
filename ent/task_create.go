@@ -32,6 +32,12 @@ func (tc *TaskCreate) SetDescription(s string) *TaskCreate {
 	return tc
 }
 
+// SetSteps sets the "steps" field.
+func (tc *TaskCreate) SetSteps(s []string) *TaskCreate {
+	tc.mutation.SetSteps(s)
+	return tc
+}
+
 // SetUserID sets the "user" edge to the User entity by ID.
 func (tc *TaskCreate) SetUserID(id int) *TaskCreate {
 	tc.mutation.SetUserID(id)
@@ -91,6 +97,9 @@ func (tc *TaskCreate) check() error {
 	if _, ok := tc.mutation.Description(); !ok {
 		return &ValidationError{Name: "description", err: errors.New(`ent: missing required field "Task.description"`)}
 	}
+	if _, ok := tc.mutation.Steps(); !ok {
+		return &ValidationError{Name: "steps", err: errors.New(`ent: missing required field "Task.steps"`)}
+	}
 	return nil
 }
 
@@ -124,6 +133,10 @@ func (tc *TaskCreate) createSpec() (*Task, *sqlgraph.CreateSpec) {
 	if value, ok := tc.mutation.Description(); ok {
 		_spec.SetField(task.FieldDescription, field.TypeString, value)
 		_node.Description = value
+	}
+	if value, ok := tc.mutation.Steps(); ok {
+		_spec.SetField(task.FieldSteps, field.TypeJSON, value)
+		_node.Steps = value
 	}
 	if nodes := tc.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

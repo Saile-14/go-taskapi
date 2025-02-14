@@ -3,6 +3,7 @@
 package ent
 
 import (
+	"encoding/json"
 	"fmt"
 	"go-taskapi/ent/task"
 	"go-taskapi/ent/user"
@@ -21,6 +22,8 @@ type Task struct {
 	Title string `json:"title,omitempty"`
 	// Description holds the value of the "description" field.
 	Description string `json:"description,omitempty"`
+	// Steps holds the value of the "steps" field.
+	Steps []string `json:"steps,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the TaskQuery when eager-loading is set.
 	Edges        TaskEdges `json:"edges"`
@@ -53,6 +56,8 @@ func (*Task) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
+		case task.FieldSteps:
+			values[i] = new([]byte)
 		case task.FieldID:
 			values[i] = new(sql.NullInt64)
 		case task.FieldTitle, task.FieldDescription:
@@ -91,6 +96,14 @@ func (t *Task) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
 				t.Description = value.String
+			}
+		case task.FieldSteps:
+			if value, ok := values[i].(*[]byte); !ok {
+				return fmt.Errorf("unexpected type %T for field steps", values[i])
+			} else if value != nil && len(*value) > 0 {
+				if err := json.Unmarshal(*value, &t.Steps); err != nil {
+					return fmt.Errorf("unmarshal field steps: %w", err)
+				}
 			}
 		case task.ForeignKeys[0]:
 			if value, ok := values[i].(*sql.NullInt64); !ok {
@@ -145,6 +158,9 @@ func (t *Task) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("description=")
 	builder.WriteString(t.Description)
+	builder.WriteString(", ")
+	builder.WriteString("steps=")
+	builder.WriteString(fmt.Sprintf("%v", t.Steps))
 	builder.WriteByte(')')
 	return builder.String()
 }

@@ -16,6 +16,7 @@ func (Task) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("title"),
 		field.String("description"),
+		field.Strings("steps"),
 	}
 }
 

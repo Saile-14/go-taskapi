@@ -7,15 +7,16 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v4"
 	"github.com/gorilla/mux"
+	"github.com/joho/godotenv"
 	openai "github.com/sashabaranov/go-openai"
 	"golang.org/x/crypto/bcrypt"
 
-	// Import the generated ent client and schema packages.
 	"go-taskapi/ent"
 	"go-taskapi/ent/task"
 	"go-taskapi/ent/user"
@@ -23,39 +24,35 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-// jwtSecret is used to sign JWT tokens.
-var jwtSecret = []byte("your_secret_key") // Replace with your secret!
+var jwtSecret = []byte("supersecretstring")
 
-// contextKey is used for storing/retrieving values from the request context.
 type contextKey string
 
 const userCtxKey contextKey = "userID"
 
-// CreateTaskInput represents the JSON payload for creating a task.
 type CreateTaskInput struct {
 	Prompt string `json:"prompt"`
 }
 
-// OpenAITaskResponse represents the JSON output from OpenAI.
+type UpdateTaskInput struct {
+	Title       string   `json:"title,omitempty"`
+	Description string   `json:"description,omitempty"`
+	Steps       []string `json:"steps,omitempty"`
+}
+
 type OpenAITaskResponse struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
+	Title       string   `json:"title"`
+	Description string   `json:"description"`
+	Steps       []string `json:"steps"`
 }
 
-// RegisterInput represents the payload for registering a user.
-type RegisterInput struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-// LoginInput represents the payload for logging in a user.
-type LoginInput struct {
+type AccountInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
 func main() {
-	// Open a SQLite database (data.db file will be created in the project folder)
+
 	client, err := ent.Open("sqlite3", "file:data.db?cache=shared&_fk=1")
 	if err != nil {
 		log.Fatalf("failed opening connection to sqlite: %v", err)
@@ -63,30 +60,27 @@ func main() {
 	defer client.Close()
 
 	ctx := context.Background()
-	// Auto-migrate your schema
+
 	if err := client.Schema.Create(ctx); err != nil {
 		log.Fatalf("failed creating schema resources: %v", err)
 	}
 
-	// Set up Gorilla Mux router.
 	router := mux.NewRouter()
 
-	// Public endpoints.
 	router.HandleFunc("/register", registerHandler(client)).Methods("POST")
 	router.HandleFunc("/login", loginHandler(client)).Methods("POST")
 
-	// Protected endpoints (use JWT middleware).
 	router.Handle("/tasks", verifyTokenMiddleware(http.HandlerFunc(createTaskHandler(client)))).Methods("POST")
 	router.Handle("/tasks", verifyTokenMiddleware(http.HandlerFunc(getTasksHandler(client)))).Methods("GET")
+	router.Handle("/tasks/{id}", verifyTokenMiddleware(http.HandlerFunc(updateTaskHandler(client)))).Methods("PUT")
+	router.Handle("/tasks/{id}", verifyTokenMiddleware(http.HandlerFunc(deleteTaskHandler(client)))).Methods("DELETE")
 
 	fmt.Println("Server is running on port 8080")
 	log.Fatal(http.ListenAndServe(":8080", router))
 }
 
-// Middleware: verifyTokenMiddleware validates the JWT and adds the user ID to the context.
 func verifyTokenMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Expect header: "Authorization: Bearer <token>"
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
 			http.Error(w, "Missing Authorization header", http.StatusUnauthorized)
@@ -99,7 +93,6 @@ func verifyTokenMiddleware(next http.Handler) http.Handler {
 		}
 		tokenStr := parts[1]
 		token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
-			// Validate the signing method
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
@@ -114,28 +107,24 @@ func verifyTokenMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Invalid token claims", http.StatusUnauthorized)
 			return
 		}
-		// Extract user_id from token claims.
 		userIDFloat, ok := claims["user_id"].(float64)
 		if !ok {
 			http.Error(w, "Invalid user id in token", http.StatusUnauthorized)
 			return
 		}
 		userID := int(userIDFloat)
-		// Add userID to the request context.
 		ctx := context.WithValue(r.Context(), userCtxKey, userID)
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }
 
-// registerHandler registers a new user.
 func registerHandler(client *ent.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var input RegisterInput
+		var input AccountInput
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			http.Error(w, "Invalid input", http.StatusBadRequest)
 			return
 		}
-		// Hash the password.
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
 		if err != nil {
 			http.Error(w, "Failed to hash password", http.StatusInternalServerError)
@@ -156,10 +145,9 @@ func registerHandler(client *ent.Client) http.HandlerFunc {
 	}
 }
 
-// loginHandler logs in a user and returns a JWT token.
 func loginHandler(client *ent.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var input LoginInput
+		var input AccountInput
 		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
 			http.Error(w, "Invalid input", http.StatusBadRequest)
 			return
@@ -173,12 +161,10 @@ func loginHandler(client *ent.Client) http.HandlerFunc {
 			http.Error(w, "User not found", http.StatusUnauthorized)
 			return
 		}
-		// Compare password.
 		if err := bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(input.Password)); err != nil {
 			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return
 		}
-		// Create JWT token.
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"user_id": u.ID,
 			"exp":     time.Now().Add(72 * time.Hour).Unix(),
@@ -193,7 +179,6 @@ func loginHandler(client *ent.Client) http.HandlerFunc {
 	}
 }
 
-// createTaskHandler creates a new task (calls OpenAI to generate task details) and associates it with the authenticated user.
 func createTaskHandler(client *ent.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var input CreateTaskInput
@@ -201,30 +186,28 @@ func createTaskHandler(client *ent.Client) http.HandlerFunc {
 			http.Error(w, "Invalid input", http.StatusBadRequest)
 			return
 		}
-		// Get the authenticated user ID from the context.
 		userID, ok := r.Context().Value(userCtxKey).(int)
 		if !ok {
 			http.Error(w, "User not authenticated", http.StatusUnauthorized)
 			return
 		}
-		// Call OpenAI API to generate task details.
-		title, description, err := generateTaskFromPrompt(input.Prompt)
+		title, description, steps, err := generateTaskFromPrompt(input.Prompt)
 		if err != nil {
+			fmt.Println("Task generation Error: ", err)
 			http.Error(w, "Failed to generate task details", http.StatusInternalServerError)
 			return
 		}
 		ctx := context.Background()
-		// Retrieve the user entity.
 		u, err := client.User.Get(ctx, userID)
 		if err != nil {
 			http.Error(w, "User not found", http.StatusUnauthorized)
 			return
 		}
-		// Create a new task associated with the user.
 		t, err := client.Task.
 			Create().
 			SetTitle(title).
 			SetDescription(description).
+			SetSteps(steps).
 			SetUser(u).
 			Save(ctx)
 		if err != nil {
@@ -236,7 +219,6 @@ func createTaskHandler(client *ent.Client) http.HandlerFunc {
 	}
 }
 
-// getTasksHandler retrieves all tasks for the authenticated user.
 func getTasksHandler(client *ent.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		userID, ok := r.Context().Value(userCtxKey).(int)
@@ -258,15 +240,112 @@ func getTasksHandler(client *ent.Client) http.HandlerFunc {
 	}
 }
 
-// generateTaskFromPrompt calls the OpenAI API to generate a title and description for a task.
-func generateTaskFromPrompt(prompt string) (string, string, error) {
-	// If USE_FAKE_AI is set to "true", return dummy data for testing.
+func updateTaskHandler(client *ent.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		taskID, err := strconv.Atoi(vars["id"])
+		if err != nil {
+			http.Error(w, "Invalid task ID", http.StatusBadRequest)
+			return
+		}
 
-	return "Fake Task Title", "This is a fake task description based on the prompt: " + prompt, nil
+		userID, ok := r.Context().Value(userCtxKey).(int)
+		if !ok {
+			http.Error(w, "User not authenticated", http.StatusUnauthorized)
+			return
+		}
+
+		var input UpdateTaskInput
+		if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+			http.Error(w, "Invalid input", http.StatusBadRequest)
+			return
+		}
+
+		ctx := context.Background()
+
+		t, err := client.Task.
+			Query().
+			Where(task.IDEQ(taskID), task.HasUserWith(user.IDEQ(userID))).
+			Only(ctx)
+		if err != nil {
+			http.Error(w, "Task not found or unauthorized", http.StatusNotFound)
+			return
+		}
+
+		update := t.Update()
+		if input.Title != "" {
+			update.SetTitle(input.Title)
+		}
+		if input.Description != "" {
+			update.SetDescription(input.Description)
+		}
+		if input.Steps != nil {
+			update.SetSteps(input.Steps)
+		}
+
+		updatedTask, err := update.Save(ctx)
+		if err != nil {
+			http.Error(w, "Failed to update task", http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(updatedTask)
+	}
+}
+
+func deleteTaskHandler(client *ent.Client) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		vars := mux.Vars(r)
+		taskID, err := strconv.Atoi(vars["id"])
+		if err != nil {
+			http.Error(w, "Invalid task ID", http.StatusBadRequest)
+			return
+		}
+
+		userID, ok := r.Context().Value(userCtxKey).(int)
+		if !ok {
+			http.Error(w, "User not authenticated", http.StatusUnauthorized)
+			return
+		}
+
+		ctx := context.Background()
+
+		_, err = client.Task.
+			Query().
+			Where(task.IDEQ(taskID), task.HasUserWith(user.IDEQ(userID))).
+			Only(ctx)
+
+		if err != nil {
+			http.Error(w, "Task not found or unauthorized", http.StatusNotFound)
+			return
+		}
+
+		if err := client.Task.
+			DeleteOneID(taskID).
+			Exec(ctx); err != nil {
+			http.Error(w, "Failed to delete task", http.StatusInternalServerError)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func generateTaskFromPrompt(prompt string) (string, string, []string, error) {
+
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
+	if useFake := os.Getenv("USE_FAKE_AI"); useFake == "true" {
+		return "Fake Task Title", "This is a fake task description based on the prompt: " + prompt, []string{"Fake step 1", "Fake step 2"}, nil
+	}
 
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
-		return "", "", fmt.Errorf("OPENAI_API_KEY not set")
+		return "", "", []string{""}, fmt.Errorf("OPENAI_API_KEY not set")
 	}
 	aiClient := openai.NewClient(apiKey)
 	ctx := context.Background()
@@ -275,7 +354,7 @@ func generateTaskFromPrompt(prompt string) (string, string, error) {
 		Messages: []openai.ChatCompletionMessage{
 			{
 				Role:    "system",
-				Content: "You are an assistant that generates a JSON object with a title and a detailed description for a todo task. Your output must be valid JSON in the following format: {\"title\": \"Task Title\", \"description\": \"Task Description\"}",
+				Content: "You are an assistant that generates a JSON object with a title and a detailed description for a todo task, then in the object include an array of string that represents the steps you take to finish the task. Your output must be valid JSON in the following format: {\"title\": \"Task Title\", \"description\": \"Task Description\", \"steps\": [\"Step 1\", \"Step 2\"]}",
 			},
 			{
 				Role:    "user",
@@ -285,12 +364,12 @@ func generateTaskFromPrompt(prompt string) (string, string, error) {
 	}
 	resp, err := aiClient.CreateChatCompletion(ctx, req)
 	if err != nil {
-		return "", "", err
+		return "", "", []string{""}, err
 	}
 	responseText := resp.Choices[0].Message.Content
 	var result OpenAITaskResponse
 	if err := json.Unmarshal([]byte(responseText), &result); err != nil {
-		return "", "", fmt.Errorf("failed to parse response: %v", err)
+		return "", "", []string{""}, fmt.Errorf("failed to parse response: %v", err)
 	}
-	return result.Title, result.Description, nil
+	return result.Title, result.Description, result.Steps, nil
 }

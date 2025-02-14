@@ -12,6 +12,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
+	"entgo.io/ent/dialect/sql/sqljson"
 	"entgo.io/ent/schema/field"
 )
 
@@ -53,6 +54,18 @@ func (tu *TaskUpdate) SetNillableDescription(s *string) *TaskUpdate {
 	if s != nil {
 		tu.SetDescription(*s)
 	}
+	return tu
+}
+
+// SetSteps sets the "steps" field.
+func (tu *TaskUpdate) SetSteps(s []string) *TaskUpdate {
+	tu.mutation.SetSteps(s)
+	return tu
+}
+
+// AppendSteps appends s to the "steps" field.
+func (tu *TaskUpdate) AppendSteps(s []string) *TaskUpdate {
+	tu.mutation.AppendSteps(s)
 	return tu
 }
 
@@ -128,6 +141,14 @@ func (tu *TaskUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := tu.mutation.Description(); ok {
 		_spec.SetField(task.FieldDescription, field.TypeString, value)
 	}
+	if value, ok := tu.mutation.Steps(); ok {
+		_spec.SetField(task.FieldSteps, field.TypeJSON, value)
+	}
+	if value, ok := tu.mutation.AppendedSteps(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, task.FieldSteps, value)
+		})
+	}
 	if tu.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
 			Rel:     sqlgraph.M2O,
@@ -202,6 +223,18 @@ func (tuo *TaskUpdateOne) SetNillableDescription(s *string) *TaskUpdateOne {
 	if s != nil {
 		tuo.SetDescription(*s)
 	}
+	return tuo
+}
+
+// SetSteps sets the "steps" field.
+func (tuo *TaskUpdateOne) SetSteps(s []string) *TaskUpdateOne {
+	tuo.mutation.SetSteps(s)
+	return tuo
+}
+
+// AppendSteps appends s to the "steps" field.
+func (tuo *TaskUpdateOne) AppendSteps(s []string) *TaskUpdateOne {
+	tuo.mutation.AppendSteps(s)
 	return tuo
 }
 
@@ -306,6 +339,14 @@ func (tuo *TaskUpdateOne) sqlSave(ctx context.Context) (_node *Task, err error) 
 	}
 	if value, ok := tuo.mutation.Description(); ok {
 		_spec.SetField(task.FieldDescription, field.TypeString, value)
+	}
+	if value, ok := tuo.mutation.Steps(); ok {
+		_spec.SetField(task.FieldSteps, field.TypeJSON, value)
+	}
+	if value, ok := tuo.mutation.AppendedSteps(); ok {
+		_spec.AddModifier(func(u *sql.UpdateBuilder) {
+			sqljson.Append(u, task.FieldSteps, value)
+		})
 	}
 	if tuo.mutation.UserCleared() {
 		edge := &sqlgraph.EdgeSpec{
