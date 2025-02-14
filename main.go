@@ -12,6 +12,7 @@ import (
 	"time"
 
 	jwt "github.com/golang-jwt/jwt/v4"
+	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/joho/godotenv"
 	openai "github.com/sashabaranov/go-openai"
@@ -68,6 +69,10 @@ func main() {
 
 	router := mux.NewRouter()
 
+	corsOptions := handlers.AllowedOrigins([]string{"http://localhost:5173"})
+	corsMethods := handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE"})
+	corsHeaders := handlers.AllowedHeaders([]string{"Content-Type", "Authorization"})
+
 	router.HandleFunc("/register", registerHandler(client)).Methods("POST")
 	router.HandleFunc("/login", loginHandler(client)).Methods("POST")
 
@@ -77,7 +82,7 @@ func main() {
 	router.Handle("/tasks/{id}", verifyTokenMiddleware(http.HandlerFunc(deleteTaskHandler(client)))).Methods("DELETE")
 
 	fmt.Println("Server is running on port 8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	log.Fatal(http.ListenAndServe(":8080", handlers.CORS(corsOptions, corsMethods, corsHeaders)(router)))
 }
 
 func verifyTokenMiddleware(next http.Handler) http.Handler {
