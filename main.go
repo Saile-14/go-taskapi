@@ -36,10 +36,10 @@ type CreateTaskInput struct {
 }
 
 type UpdateTaskInput struct {
-	Title       string   `json:"title,omitempty"`
-	Description string   `json:"description,omitempty"`
-	Checked     bool     `json:"checked"`
-	Steps       []string `json:"steps,omitempty"`
+	Title       *string   `json:"title,omitempty"`
+	Description *string   `json:"description,omitempty"`
+	Checked     *bool     `json:"checked,omitempty"`
+	Steps       *[]string `json:"steps,omitempty"`
 }
 
 type OpenAITaskResponse struct {
@@ -280,17 +280,17 @@ func updateTaskHandler(client *ent.Client) http.HandlerFunc {
 		}
 
 		update := t.Update()
-		if input.Title != "" {
-			update.SetTitle(input.Title)
+		if input.Title != nil {
+			update.SetTitle(*input.Title)
 		}
-		if input.Description != "" {
-			update.SetDescription(input.Description)
+		if input.Description != nil {
+			update.SetDescription(*input.Description)
 		}
-		if input.Checked {
-			update.SetChecked(input.Checked)
+		if input.Checked != nil {
+			update.SetChecked(*input.Checked)
 		}
 		if input.Steps != nil {
-			update.SetSteps(input.Steps)
+			update.SetSteps(*input.Steps)
 		}
 
 		updatedTask, err := update.Save(ctx)
