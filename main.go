@@ -37,6 +37,7 @@ type CreateTaskInput struct {
 type UpdateTaskInput struct {
 	Title       string   `json:"title,omitempty"`
 	Description string   `json:"description,omitempty"`
+	Checked     bool     `json:"checked"`
 	Steps       []string `json:"steps,omitempty"`
 }
 
@@ -208,6 +209,7 @@ func createTaskHandler(client *ent.Client) http.HandlerFunc {
 			SetTitle(title).
 			SetDescription(description).
 			SetSteps(steps).
+			SetChecked(false).
 			SetUser(u).
 			Save(ctx)
 		if err != nil {
@@ -278,6 +280,9 @@ func updateTaskHandler(client *ent.Client) http.HandlerFunc {
 		}
 		if input.Description != "" {
 			update.SetDescription(input.Description)
+		}
+		if input.Checked {
+			update.SetChecked(input.Checked)
 		}
 		if input.Steps != nil {
 			update.SetSteps(input.Steps)

@@ -64,6 +64,11 @@ func Description(v string) predicate.Task {
 	return predicate.Task(sql.FieldEQ(FieldDescription, v))
 }
 
+// Checked applies equality check predicate on the "checked" field. It's identical to CheckedEQ.
+func Checked(v bool) predicate.Task {
+	return predicate.Task(sql.FieldEQ(FieldChecked, v))
+}
+
 // TitleEQ applies the EQ predicate on the "title" field.
 func TitleEQ(v string) predicate.Task {
 	return predicate.Task(sql.FieldEQ(FieldTitle, v))
@@ -192,6 +197,16 @@ func DescriptionEqualFold(v string) predicate.Task {
 // DescriptionContainsFold applies the ContainsFold predicate on the "description" field.
 func DescriptionContainsFold(v string) predicate.Task {
 	return predicate.Task(sql.FieldContainsFold(FieldDescription, v))
+}
+
+// CheckedEQ applies the EQ predicate on the "checked" field.
+func CheckedEQ(v bool) predicate.Task {
+	return predicate.Task(sql.FieldEQ(FieldChecked, v))
+}
+
+// CheckedNEQ applies the NEQ predicate on the "checked" field.
+func CheckedNEQ(v bool) predicate.Task {
+	return predicate.Task(sql.FieldNEQ(FieldChecked, v))
 }
 
 // HasUser applies the HasEdge predicate on the "user" edge.

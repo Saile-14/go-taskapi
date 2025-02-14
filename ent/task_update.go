@@ -57,6 +57,20 @@ func (tu *TaskUpdate) SetNillableDescription(s *string) *TaskUpdate {
 	return tu
 }
 
+// SetChecked sets the "checked" field.
+func (tu *TaskUpdate) SetChecked(b bool) *TaskUpdate {
+	tu.mutation.SetChecked(b)
+	return tu
+}
+
+// SetNillableChecked sets the "checked" field if the given value is not nil.
+func (tu *TaskUpdate) SetNillableChecked(b *bool) *TaskUpdate {
+	if b != nil {
+		tu.SetChecked(*b)
+	}
+	return tu
+}
+
 // SetSteps sets the "steps" field.
 func (tu *TaskUpdate) SetSteps(s []string) *TaskUpdate {
 	tu.mutation.SetSteps(s)
@@ -141,6 +155,9 @@ func (tu *TaskUpdate) sqlSave(ctx context.Context) (n int, err error) {
 	if value, ok := tu.mutation.Description(); ok {
 		_spec.SetField(task.FieldDescription, field.TypeString, value)
 	}
+	if value, ok := tu.mutation.Checked(); ok {
+		_spec.SetField(task.FieldChecked, field.TypeBool, value)
+	}
 	if value, ok := tu.mutation.Steps(); ok {
 		_spec.SetField(task.FieldSteps, field.TypeJSON, value)
 	}
@@ -222,6 +239,20 @@ func (tuo *TaskUpdateOne) SetDescription(s string) *TaskUpdateOne {
 func (tuo *TaskUpdateOne) SetNillableDescription(s *string) *TaskUpdateOne {
 	if s != nil {
 		tuo.SetDescription(*s)
+	}
+	return tuo
+}
+
+// SetChecked sets the "checked" field.
+func (tuo *TaskUpdateOne) SetChecked(b bool) *TaskUpdateOne {
+	tuo.mutation.SetChecked(b)
+	return tuo
+}
+
+// SetNillableChecked sets the "checked" field if the given value is not nil.
+func (tuo *TaskUpdateOne) SetNillableChecked(b *bool) *TaskUpdateOne {
+	if b != nil {
+		tuo.SetChecked(*b)
 	}
 	return tuo
 }
@@ -339,6 +370,9 @@ func (tuo *TaskUpdateOne) sqlSave(ctx context.Context) (_node *Task, err error) 
 	}
 	if value, ok := tuo.mutation.Description(); ok {
 		_spec.SetField(task.FieldDescription, field.TypeString, value)
+	}
+	if value, ok := tuo.mutation.Checked(); ok {
+		_spec.SetField(task.FieldChecked, field.TypeBool, value)
 	}
 	if value, ok := tuo.mutation.Steps(); ok {
 		_spec.SetField(task.FieldSteps, field.TypeJSON, value)

@@ -36,6 +36,7 @@ type TaskMutation struct {
 	id            *int
 	title         *string
 	description   *string
+	checked       *bool
 	steps         *[]string
 	appendsteps   []string
 	clearedFields map[string]struct{}
@@ -216,6 +217,42 @@ func (m *TaskMutation) ResetDescription() {
 	m.description = nil
 }
 
+// SetChecked sets the "checked" field.
+func (m *TaskMutation) SetChecked(b bool) {
+	m.checked = &b
+}
+
+// Checked returns the value of the "checked" field in the mutation.
+func (m *TaskMutation) Checked() (r bool, exists bool) {
+	v := m.checked
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldChecked returns the old "checked" field's value of the Task entity.
+// If the Task object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TaskMutation) OldChecked(ctx context.Context) (v *bool, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldChecked is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldChecked requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldChecked: %w", err)
+	}
+	return oldValue.Checked, nil
+}
+
+// ResetChecked resets all changes to the "checked" field.
+func (m *TaskMutation) ResetChecked() {
+	m.checked = nil
+}
+
 // SetSteps sets the "steps" field.
 func (m *TaskMutation) SetSteps(s []string) {
 	m.steps = &s
@@ -340,12 +377,15 @@ func (m *TaskMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *TaskMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 4)
 	if m.title != nil {
 		fields = append(fields, task.FieldTitle)
 	}
 	if m.description != nil {
 		fields = append(fields, task.FieldDescription)
+	}
+	if m.checked != nil {
+		fields = append(fields, task.FieldChecked)
 	}
 	if m.steps != nil {
 		fields = append(fields, task.FieldSteps)
@@ -362,6 +402,8 @@ func (m *TaskMutation) Field(name string) (ent.Value, bool) {
 		return m.Title()
 	case task.FieldDescription:
 		return m.Description()
+	case task.FieldChecked:
+		return m.Checked()
 	case task.FieldSteps:
 		return m.Steps()
 	}
@@ -377,6 +419,8 @@ func (m *TaskMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldTitle(ctx)
 	case task.FieldDescription:
 		return m.OldDescription(ctx)
+	case task.FieldChecked:
+		return m.OldChecked(ctx)
 	case task.FieldSteps:
 		return m.OldSteps(ctx)
 	}
@@ -401,6 +445,13 @@ func (m *TaskMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetDescription(v)
+		return nil
+	case task.FieldChecked:
+		v, ok := value.(bool)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetChecked(v)
 		return nil
 	case task.FieldSteps:
 		v, ok := value.([]string)
@@ -463,6 +514,9 @@ func (m *TaskMutation) ResetField(name string) error {
 		return nil
 	case task.FieldDescription:
 		m.ResetDescription()
+		return nil
+	case task.FieldChecked:
+		m.ResetChecked()
 		return nil
 	case task.FieldSteps:
 		m.ResetSteps()

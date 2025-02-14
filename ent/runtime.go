@@ -2,8 +2,19 @@
 
 package ent
 
+import (
+	"go-taskapi/ent/schema"
+	"go-taskapi/ent/task"
+)
+
 // The init function reads all schema descriptors with runtime code
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	taskFields := schema.Task{}.Fields()
+	_ = taskFields
+	// taskDescChecked is the schema descriptor for checked field.
+	taskDescChecked := taskFields[2].Descriptor()
+	// task.DefaultChecked holds the default value on creation for the checked field.
+	task.DefaultChecked = taskDescChecked.Default.(bool)
 }

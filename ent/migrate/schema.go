@@ -13,6 +13,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "title", Type: field.TypeString},
 		{Name: "description", Type: field.TypeString},
+		{Name: "checked", Type: field.TypeBool, Default: false},
 		{Name: "steps", Type: field.TypeJSON},
 		{Name: "user_tasks", Type: field.TypeInt, Nullable: true},
 	}
@@ -24,7 +25,7 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "tasks_users_tasks",
-				Columns:    []*schema.Column{TasksColumns[4]},
+				Columns:    []*schema.Column{TasksColumns[5]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},

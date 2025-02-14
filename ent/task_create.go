@@ -32,6 +32,20 @@ func (tc *TaskCreate) SetDescription(s string) *TaskCreate {
 	return tc
 }
 
+// SetChecked sets the "checked" field.
+func (tc *TaskCreate) SetChecked(b bool) *TaskCreate {
+	tc.mutation.SetChecked(b)
+	return tc
+}
+
+// SetNillableChecked sets the "checked" field if the given value is not nil.
+func (tc *TaskCreate) SetNillableChecked(b *bool) *TaskCreate {
+	if b != nil {
+		tc.SetChecked(*b)
+	}
+	return tc
+}
+
 // SetSteps sets the "steps" field.
 func (tc *TaskCreate) SetSteps(s []string) *TaskCreate {
 	tc.mutation.SetSteps(s)
@@ -64,6 +78,7 @@ func (tc *TaskCreate) Mutation() *TaskMutation {
 
 // Save creates the Task in the database.
 func (tc *TaskCreate) Save(ctx context.Context) (*Task, error) {
+	tc.defaults()
 	return withHooks(ctx, tc.sqlSave, tc.mutation, tc.hooks)
 }
 
@@ -89,6 +104,14 @@ func (tc *TaskCreate) ExecX(ctx context.Context) {
 	}
 }
 
+// defaults sets the default values of the builder before save.
+func (tc *TaskCreate) defaults() {
+	if _, ok := tc.mutation.Checked(); !ok {
+		v := task.DefaultChecked
+		tc.mutation.SetChecked(v)
+	}
+}
+
 // check runs all checks and user-defined validators on the builder.
 func (tc *TaskCreate) check() error {
 	if _, ok := tc.mutation.Title(); !ok {
@@ -96,6 +119,9 @@ func (tc *TaskCreate) check() error {
 	}
 	if _, ok := tc.mutation.Description(); !ok {
 		return &ValidationError{Name: "description", err: errors.New(`ent: missing required field "Task.description"`)}
+	}
+	if _, ok := tc.mutation.Checked(); !ok {
+		return &ValidationError{Name: "checked", err: errors.New(`ent: missing required field "Task.checked"`)}
 	}
 	if _, ok := tc.mutation.Steps(); !ok {
 		return &ValidationError{Name: "steps", err: errors.New(`ent: missing required field "Task.steps"`)}
@@ -133,6 +159,10 @@ func (tc *TaskCreate) createSpec() (*Task, *sqlgraph.CreateSpec) {
 	if value, ok := tc.mutation.Description(); ok {
 		_spec.SetField(task.FieldDescription, field.TypeString, value)
 		_node.Description = value
+	}
+	if value, ok := tc.mutation.Checked(); ok {
+		_spec.SetField(task.FieldChecked, field.TypeBool, value)
+		_node.Checked = &value
 	}
 	if value, ok := tc.mutation.Steps(); ok {
 		_spec.SetField(task.FieldSteps, field.TypeJSON, value)
@@ -176,6 +206,7 @@ func (tcb *TaskCreateBulk) Save(ctx context.Context) ([]*Task, error) {
 	for i := range tcb.builders {
 		func(i int, root context.Context) {
 			builder := tcb.builders[i]
+			builder.defaults()
 			var mut Mutator = MutateFunc(func(ctx context.Context, m Mutation) (Value, error) {
 				mutation, ok := m.(*TaskMutation)
 				if !ok {

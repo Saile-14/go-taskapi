@@ -16,6 +16,7 @@ func (Task) Fields() []ent.Field {
 	return []ent.Field{
 		field.String("title"),
 		field.String("description"),
+		field.Bool("checked").Default(false).Nillable(),
 		field.Strings("steps"),
 	}
 }

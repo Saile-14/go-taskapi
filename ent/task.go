@@ -22,6 +22,8 @@ type Task struct {
 	Title string `json:"title,omitempty"`
 	// Description holds the value of the "description" field.
 	Description string `json:"description,omitempty"`
+	// Checked holds the value of the "checked" field.
+	Checked *bool `json:"checked,omitempty"`
 	// Steps holds the value of the "steps" field.
 	Steps []string `json:"steps,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
@@ -58,6 +60,8 @@ func (*Task) scanValues(columns []string) ([]any, error) {
 		switch columns[i] {
 		case task.FieldSteps:
 			values[i] = new([]byte)
+		case task.FieldChecked:
+			values[i] = new(sql.NullBool)
 		case task.FieldID:
 			values[i] = new(sql.NullInt64)
 		case task.FieldTitle, task.FieldDescription:
@@ -96,6 +100,13 @@ func (t *Task) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field description", values[i])
 			} else if value.Valid {
 				t.Description = value.String
+			}
+		case task.FieldChecked:
+			if value, ok := values[i].(*sql.NullBool); !ok {
+				return fmt.Errorf("unexpected type %T for field checked", values[i])
+			} else if value.Valid {
+				t.Checked = new(bool)
+				*t.Checked = value.Bool
 			}
 		case task.FieldSteps:
 			if value, ok := values[i].(*[]byte); !ok {
@@ -158,6 +169,11 @@ func (t *Task) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("description=")
 	builder.WriteString(t.Description)
+	builder.WriteString(", ")
+	if v := t.Checked; v != nil {
+		builder.WriteString("checked=")
+		builder.WriteString(fmt.Sprintf("%v", *v))
+	}
 	builder.WriteString(", ")
 	builder.WriteString("steps=")
 	builder.WriteString(fmt.Sprintf("%v", t.Steps))

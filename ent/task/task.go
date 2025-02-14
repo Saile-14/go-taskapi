@@ -16,6 +16,8 @@ const (
 	FieldTitle = "title"
 	// FieldDescription holds the string denoting the description field in the database.
 	FieldDescription = "description"
+	// FieldChecked holds the string denoting the checked field in the database.
+	FieldChecked = "checked"
 	// FieldSteps holds the string denoting the steps field in the database.
 	FieldSteps = "steps"
 	// EdgeUser holds the string denoting the user edge name in mutations.
@@ -36,6 +38,7 @@ var Columns = []string{
 	FieldID,
 	FieldTitle,
 	FieldDescription,
+	FieldChecked,
 	FieldSteps,
 }
 
@@ -60,6 +63,11 @@ func ValidColumn(column string) bool {
 	return false
 }
 
+var (
+	// DefaultChecked holds the default value on creation for the "checked" field.
+	DefaultChecked bool
+)
+
 // OrderOption defines the ordering options for the Task queries.
 type OrderOption func(*sql.Selector)
 
@@ -76,6 +84,11 @@ func ByTitle(opts ...sql.OrderTermOption) OrderOption {
 // ByDescription orders the results by the description field.
 func ByDescription(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldDescription, opts...).ToFunc()
+}
+
+// ByChecked orders the results by the checked field.
+func ByChecked(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldChecked, opts...).ToFunc()
 }
 
 // ByUserField orders the results by user field.
